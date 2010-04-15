@@ -7,24 +7,13 @@
 var FacebookConnectURLString    = @"http://static.ak.fbcdn.net/connect/en_US/core.js",
     SharedConnectController     = nil;
 
-var ConnectStatusUnconnected    = 0,
-    ConnectStatusConnecting     = 1,
-    ConnectStatusConnected      = 2;
-
-var Uninitialized               = 0,
-    Loading                     = 1,
-    Loaded                      = 2;
-
 @implementation FBConnectController : CPObject
 {
-    State       loadStatus;
-    State       connectionStatus;
-    State       loggedInStatus;
+    CPString    m_APIKey;
 
-    CPString    APIKey @accessors(readonly);
     DOMElement  m_fbRoot;
-    
-    
+    BOOL        m_isLoaded;
+
     FBUser      m_user @accessors(readonly, property=user);
 }
 
@@ -64,7 +53,7 @@ var Uninitialized               = 0,
            selector:@selector(applicationDidFinishLaunching:)
                name:CPApplicationDidFinishLaunchingNotification
              object:nil];
-    
+
     window.fbAsyncInit = function()
     {
         FB.Event.subscribe("auth.sessionChange", function(aResponse)
@@ -86,7 +75,9 @@ var Uninitialized               = 0,
             [[CPRunLoop currentRunLoop] limitDateForMode:CPDefaultRunLoopMode];
         });
 
-        [[FBConnectController sharedConnectController] connect];
+        m_isLoaded = YES;
+
+        [self connect];
 
         [[CPRunLoop currentRunLoop] limitDateForMode:CPDefaultRunLoopMode];
     };
@@ -96,13 +87,31 @@ var Uninitialized               = 0,
     return self;
 }
 
+- (void)setAPIKey:(CPString)aKey
+{
+    if (m_APIKey === aKey)
+        return;
+
+    m_APIKey = aKey;
+
+    [self connect];
+}
+
+- (CPString)APIKey
+{
+    return m_APIKey;
+}
+
 - (void)connect
 {
+    if (![self APIKey] || !m_isLoaded)
+        return;
+
     FB.init(
     {
-      apiKey : "cc28f8d5ce1962b3537b8f1a59782e37",//"f9ffbd6b9696f5cf5f8ab908bf8fcb02",
-      status : true, // check login status
-      cookie : true // enable cookies to allow the server to access the session
+        apiKey : [self APIKey],
+        status : true, // check login status
+        cookie : true // enable cookies to allow the server to access the session
     });
 }
 
